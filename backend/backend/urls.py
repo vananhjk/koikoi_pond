@@ -16,12 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.http import HttpResponse
-
-def home_view(request):
-    return HttpResponse("Render is running Django successfully!")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', home_view),
+    path('', include('sensors.urls')),  # Trỏ trực tiếp đường dẫn gốc vào app sensors
 ]

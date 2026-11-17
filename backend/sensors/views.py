@@ -7,7 +7,10 @@ from django.contrib.auth.decorators import login_required
 from .models import SensorData, UserDevice
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.http import HttpResponse
 
+def index(request):
+    return HttpResponse("Koi Pond Monitoring SaaS is running successfully!")
 @csrf_exempt
 def receive_sensor_data(request):
     """API nhận dữ liệu từ ESP32"""
