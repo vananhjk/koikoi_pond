@@ -15,9 +15,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
+from django.http import HttpResponse
+
+def home_view(request):
+    return HttpResponse("<h1>Koi Pond Monitoring SaaS is Live & Working!</h1>")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('sensors.urls')),  # Trỏ trực tiếp đường dẫn gốc vào app sensors
+    path('', home_view),  # Khớp trực tiếp đường dẫn gốc / để hiện chữ thông báo
 ]
