@@ -1,0 +1,16 @@
+{
+    "files.autoSave": "afterDelay",
+    "security.workspace.trust.untrustedFiles": "open",
+    "workbench.editorAssociations": {
+        "*.cc": "default"
+    },
+    "explorer.confirmDelete": false,
+    "powermode.combo.counterSize": 1,
+    "powermode.combo.timeout": 2,
+    "explorer.confirmDragAndDrop": false,
+    "python.createEnvironment.trigger": "off",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/**",
+        "D:/WaterQualityIoT/esp32_firmware/.pio/libdeps/esp32dev/**"
+    ]
+}

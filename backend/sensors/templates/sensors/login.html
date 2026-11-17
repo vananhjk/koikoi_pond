@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - KoiPond SaaS Cloud</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 font-sans flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-t-8 border-red-600">
+        <div class="text-center mb-6">
+            <span class="text-4xl">🎏</span>
+            <h1 class="text-2xl font-black uppercase text-slate-900 mt-2">KoiPond <span class="text-red-600">Cloud</span></h1>
+            <p class="text-xs text-slate-500 mt-1">Hệ thống giám sát chất lượng nước hồ cá chuyên nghiệp</p>
+        </div>
+
+        {% if error %}
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium text-center">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Tên tài khoản (Hồ cá)</label>
+                <input type="text" name="username" required class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-red-600 bg-slate-50" placeholder="Nhập username của bạn...">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mật khẩu</label>
+                <input type="password" name="password" required class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-red-600 bg-slate-50" placeholder="••••••••">
+            </div>
+            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2">
+                Đăng Nhập Quản Lý Hồ Koi
+            </button>
+        </form>
+        <div class="text-center mt-6 text-xs text-slate-400">
+            Hỗ trợ đa thiết bị IoT - Giám sát trực tuyến 24/7
+        </div>
+    </div>
+</body>
+</html>
