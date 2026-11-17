@@ -19,5 +19,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('sensors.urls')),  # Kết nối thẳng vào urls.py của app sensors
+    path('', include('sensors.urls')),  # Trỏ thẳng vào urls.py của app quản lý cảm biến
 ]
