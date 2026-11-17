@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.http import HttpResponse
 
 def home_view(request):
-    return HttpResponse("Koikoi Pond SaaS is Active!")
+    return HttpResponse("Render is running Django successfully!")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
