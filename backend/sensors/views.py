@@ -70,3 +70,10 @@ def get_sensor_data_api(request):
         })
         
     return JsonResponse(data_list, safe=False)
+from django.shortcuts import render
+
+def custom_404_view(request, exception):
+    return render(request, 'sensors/404.html', status=404)
+
+def custom_500_view(request):
+    return render(request, 'sensors/500.html', status=500)
