@@ -90,3 +90,6 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+# Cấu hình sau khi đăng nhập thành công sẽ tự động nhảy về trang chủ Dashboard
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = 'login'
