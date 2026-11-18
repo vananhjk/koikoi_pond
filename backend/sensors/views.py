@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.shortcuts import render
 
 def index(request):
-    return render(request, 'dashboard.html')
+    return render(request, 'sensors/dashboard.html')
 @csrf_exempt
 def receive_sensor_data(request):
     """API nhận dữ liệu từ ESP32"""
