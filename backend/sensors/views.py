@@ -118,3 +118,19 @@ def user_logout_view(request):
     """Đăng xuất tài khoản và chuyển hướng thẳng về trang đăng nhập khách hàng"""
     logout(request)
     return redirect('user_login')
+@csrf_exempt
+def api_upload_data(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            # Lưu dữ liệu cảm biến vào Database
+            SensorData.objects.create(
+                ph=data.get('ph'),
+                temperature=data.get('temperature'),
+                turbidity=data.get('turbidity'),
+                tds=data.get('tds')
+            )
+            return JsonResponse({'status': 'success', 'message': 'Data saved successfully!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Only POST method allowed'}, status=405)
