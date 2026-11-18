@@ -33,7 +33,12 @@
                 👤 Tài khoản: <b>{{ request.user.username }}</b>
             </span>
             <!-- Đã trỏ đúng đường dẫn đăng xuất về /accounts/logout/ -->
-            <a href="/accounts/logout/" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition font-medium shadow">Đăng xuất</a>
+            <form action="/accounts/logout/" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition font-medium shadow cursor-pointer">
+                    Đăng xuất
+                </button>
+            </form>
         </div>
     </header>
 
