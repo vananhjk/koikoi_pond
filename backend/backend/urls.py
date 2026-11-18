@@ -21,7 +21,6 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/login/', auth_views.LoginView.as_view(template_name='sensors/login.html'), name='login'),
-    # Đổi sang LogoutView với next_page trỏ về trang login
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('', include('sensors.urls')),
 ]

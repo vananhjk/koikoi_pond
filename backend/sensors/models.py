@@ -21,5 +21,22 @@ class SensorData(models.Model):
     ph = models.FloatField()
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
+    def is_warning(self):
+        # Kiểm tra ngưỡng an toàn cho cá Koi: pH (6.5 - 8.5), Nhiệt độ (15°C - 30°C)
+        if self.ph < 6.5 or self.ph > 8.5 or self.temperature < 15.0 or self.temperature > 30.0:
+            return True
+        return False
+
+    def get_warning_message(self):
+        if self.ph > 8.5:
+            return f"Độ pH trong hồ đang quá cao (pH = {self.ph}), nguy cơ gây độc cho cá Koi!"
+        elif self.ph < 6.5:
+            return f"Độ pH trong hồ đang quá thấp (pH = {self.ph}), môi trường có tính axit!"
+        elif self.temperature > 30.0:
+            return f"Nhiệt độ nước quá cao ({self.temperature}°C), cần cấp thêm nước mát!"
+        elif self.temperature < 15.0:
+            return f"Nhiệt độ nước quá thấp ({self.temperature}°C), cá có thể giảm ăn!"
+        return "Môi trường nước hồ Koi hoàn toàn tối ưu và an toàn."
+
     def __str__(self):
-        return f"[{self.device_id}] {self.timestamp} - T: {self.temperature}°C"
+        return f"[{self.device_id}] {self.timestamp} - T: {self.temperature}°C - pH: {self.ph}"
