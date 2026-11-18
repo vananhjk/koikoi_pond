@@ -24,3 +24,8 @@ urlpatterns = [
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('', include('sensors.urls')),
 ]
+from django.conf.urls import handler404, handler500
+from sensors.views import custom_404_view, custom_500_view
+
+handler404 = 'sensors.views.custom_404_view'
+handler500 = 'sensors.views.custom_500_view'

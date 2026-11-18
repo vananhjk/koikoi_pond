@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-perv(^$x1-tlod$x9=0=6b+e!i%r)!3va19&*8t-=1@8*)-&e7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # (Sau này đưa lên production thực tế có thể đổi thành False)
+DEBUG = False  # (Sau này đưa lên production thực tế có thể đổi thành False)
 
 ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1', 'localhost']
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
