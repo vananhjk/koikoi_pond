@@ -8,25 +8,29 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-// Địa chỉ URL server trên Render của bạn
+// Địa chỉ URL server trên Render
 const char* serverUrl = "https://koikoi-pond.onrender.com/api/sensors/upload/";
 
-#define ONE_WIRE_BUS 4    
-#define TURBIDITY_PIN 34  
-#define TDS_PIN 35        
-#define PH_PIN 32         
+// Cấu hình chân GPIO theo yêu cầu
+#define ONE_WIRE_BUS 4    // DS18B20 data
+#define PH_PIN 34         // Cảm biến pH (ADC1)
+#define TDS_PIN 35        // Cảm biến TDS (ADC1)
+#define TURBIDITY_PIN 32  // Cảm biến độ đục SEN0189 (ADC1)
+#define LCD_SDA 21        // I2C SDA
+#define LCD_SCL 22        // I2C SCL
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 unsigned long lastTime = 0;
-unsigned long timerDelay = 10000; 
+unsigned long timerDelay = 10000;
 
 void setup() {
   Serial.begin(115200);
 
-  Wire.begin(21, 22);
+  // Khởi tạo I2C theo đúng SDA = GPIO21, SCL = GPIO22
+  Wire.begin(LCD_SDA, LCD_SCL);
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
@@ -36,43 +40,53 @@ void setup() {
 
   // Khởi tạo WiFiManager để tự động cấu hình mạng
   WiFiManager wm;
-  // Nếu kết nối thất bại, nó sẽ phát ra mạng Wi-Fi tên "KoiPond_Setup" (mật khẩu trống)
+  // Nếu kết nối thất bại, phát ra mạng Wi-Fi "KoiPond_Setup"
   if (!wm.autoConnect("KoiPond_Setup")) {
-    Serial.println("Kết nối thất bại, khởi động lại thiết bị...");
+    Serial.println("Ket noi that bai, khoi dong lai thiet bi...");
     delay(3000);
     ESP.restart();
   }
 
-  Serial.println("Đã kết nối Wi-Fi thành công!");
+  Serial.println("Da ket noi Wi-Fi thanh cong!");
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("WiFi Connected!");
   delay(1500);
 
   sensors.begin();
-  pinMode(TURBIDITY_PIN, INPUT);
-  pinMode(TDS_PIN, INPUT);
   pinMode(PH_PIN, INPUT);
+  pinMode(TDS_PIN, INPUT);
+  pinMode(TURBIDITY_PIN, INPUT);
 }
 
 void loop() {
   sensors.requestTemperatures();
   float waterTemp = sensors.getTempCByIndex(0);
-  if (waterTemp == DEVICE_DISCONNECTED_C) waterTemp = 0.0; 
+  if (waterTemp == DEVICE_DISCONNECTED_C) {
+    waterTemp = 0.0;
+  }
 
-  int turbidityRaw = analogRead(TURBIDITY_PIN);
-  int tdsRaw = analogRead(TDS_PIN);
   int phRaw = analogRead(PH_PIN);
+  int tdsRaw = analogRead(TDS_PIN);
+  int turbidityRaw = analogRead(TURBIDITY_PIN);
 
-  float turbidityVoltage = turbidityRaw * (3.3 / 4095.0);
+  float phVoltage = phRaw * (3.3 / 4095.0);
   float tdsVoltage = tdsRaw * (3.3 / 4095.0);
-  float phValue = 7.0 + ((phRaw * (3.3 / 4095.0) - 2.5) * 3.5); 
+  float turbidityVoltage = turbidityRaw * (3.3 / 4095.0);
+
+  float phValue = 7.0 + ((phVoltage - 2.5) * 3.5);
 
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("T:"); lcd.print(waterTemp, 1); lcd.print("C pH:"); lcd.print(phValue, 1);
+  lcd.print("T:");
+  lcd.print(waterTemp, 1);
+  lcd.print("C pH:");
+  lcd.print(phValue, 1);
+
   lcd.setCursor(0, 1);
-  lcd.print("Turb:"); lcd.print(turbidityVoltage, 1); lcd.print("V");
+  lcd.print("Turb:");
+  lcd.print(turbidityVoltage, 1);
+  lcd.print("V");
 
   if ((millis() - lastTime) > timerDelay) {
     if (WiFi.status() == WL_CONNECTED) {
@@ -92,13 +106,14 @@ void loop() {
 
       int httpResponseCode = http.POST(requestBody);
       if (httpResponseCode > 0) {
-        Serial.println("Gửi dữ liệu lên Render thành công!");
+        Serial.println("Gui du lieu len Render thanh cong!");
       } else {
-        Serial.printf("Lỗi gửi dữ liệu: %d\n", httpResponseCode);
+        Serial.printf("Loi gui du lieu: %d\n", httpResponseCode);
       }
       http.end();
     }
     lastTime = millis();
   }
+
   delay(2000);
 }
