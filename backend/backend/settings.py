@@ -4,7 +4,7 @@ Django settings for backend project.
 
 from pathlib import Path
 import os
-import dj_database_url
+import dj_database_url # type: ignore
 
 # 1. Khai báo BASE_DIR lên đầu tiên để các biến phía dưới sử dụng được
 BASE_DIR = Path(__file__).resolve().parent.parent
