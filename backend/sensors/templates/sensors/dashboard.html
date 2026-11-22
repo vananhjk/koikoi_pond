@@ -45,14 +45,18 @@
     <!-- Main Dashboard Container -->
     <main class="container mx-auto px-4 py-6 max-w-7xl">
         
-        <!-- Thanh Cảnh báo & Bộ chọn lịch (Tối đa 3 tháng) -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col lg:flex-row justify-between items-center gap-4">
-            <div id="alert-banner" class="w-full lg:w-2/3 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center shadow-sm">
-                <span class="mr-2 text-xl">🟢</span> <span id="alert-text">Đang kết nối hệ thống. Môi trường nước ổn định.</span>
+        <!-- Thanh Trạng thái 4 Thông số & Bộ chọn lịch (Tối đa 3 tháng) -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <!-- Bảng thông báo chi tiết cả 4 thông số -->
+            <div id="water-status-list" class="w-full lg:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <div class="p-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-sm font-medium flex items-center gap-2">
+                    <span>⏳</span>
+                    <span>Đang kết nối và tải dữ liệu cảm biến...</span>
+                </div>
             </div>
             
             <!-- Bộ chọn ngày theo lịch -->
-            <div class="flex items-center space-x-2 w-full lg:w-auto justify-end">
+            <div class="flex items-center space-x-2 w-full lg:w-auto justify-end self-end lg:self-center">
                 <label for="filter-date" class="text-xs font-bold text-slate-500 uppercase">Chọn ngày xem:</label>
                 <input type="date" id="filter-date" class="border border-slate-300 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-red-500 bg-slate-50">
                 <button onclick="loadDashboardData()" class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-1.5 rounded-xl transition shadow">Tra cứu</button>
@@ -172,6 +176,129 @@
             options: commonOptions
         });
 
+        // Hàm đánh giá và hiển thị đầy đủ trạng thái 4 thông số
+        function renderFourParamStatus(latest) {
+            const ph = Number(latest.ph);
+            const temp = Number(latest.temperature);
+            const tds = Number(latest.tds);
+            const turb = Number(latest.turbidity);
+
+            const statuses = [];
+
+            // 1. pH: Bình thường 6.8 - 8.0 | < 6.8 axit | > 8.0 kiềm
+            if (ph < 6.8) {
+                statuses.push({
+                    level: 'danger',
+                    title: `pH: ${ph.toFixed(2)}`,
+                    desc: 'Cảnh báo — môi trường có tính axit!'
+                });
+            } else if (ph > 8.0) {
+                statuses.push({
+                    level: 'danger',
+                    title: `pH: ${ph.toFixed(2)}`,
+                    desc: 'Cảnh báo — môi trường có tính kiềm!'
+                });
+            } else {
+                statuses.push({
+                    level: 'normal',
+                    title: `pH: ${ph.toFixed(2)}`,
+                    desc: 'Bình thường (môi trường trung tính ổn định)'
+                });
+            }
+
+            // 2. Nhiệt độ: Bình thường 20.0 - 28.0 °C
+            if (temp < 20.0) {
+                statuses.push({
+                    level: 'warning',
+                    title: `Nhiệt độ: ${temp.toFixed(1)} °C`,
+                    desc: 'Cảnh báo — nước quá lạnh, dễ sốc nhiệt!'
+                });
+            } else if (temp > 28.0) {
+                statuses.push({
+                    level: 'danger',
+                    title: `Nhiệt độ: ${temp.toFixed(1)} °C`,
+                    desc: 'Cảnh báo — nước quá nóng, giảm oxy!'
+                });
+            } else {
+                statuses.push({
+                    level: 'normal',
+                    title: `Nhiệt độ: ${temp.toFixed(1)} °C`,
+                    desc: 'Bình thường'
+                });
+            }
+
+            // 3. TDS: Bình thường 100 - 400 ppm
+            if (tds < 100) {
+                statuses.push({
+                    level: 'warning',
+                    title: `TDS: ${tds.toFixed(1)} ppm`,
+                    desc: 'Cảnh báo — thấp, thiếu khoáng chất!'
+                });
+            } else if (tds > 400) {
+                statuses.push({
+                    level: 'danger',
+                    title: `TDS: ${tds.toFixed(1)} ppm`,
+                    desc: 'Cảnh báo — cao, nhiều chất rắn hòa tan!'
+                });
+            } else {
+                statuses.push({
+                    level: 'normal',
+                    title: `TDS: ${tds.toFixed(1)} ppm`,
+                    desc: 'Bình thường'
+                });
+            }
+
+            // 4. Turbidity: Bình thường < 25 NTU | 25 - 50 hơi đục | > 50 đục cao
+            if (turb > 50) {
+                statuses.push({
+                    level: 'danger',
+                    title: `Độ đục: ${turb.toFixed(1)} NTU`,
+                    desc: 'Cảnh báo — nước đục cao, kiểm tra lọc!'
+                });
+            } else if (turb >= 25) {
+                statuses.push({
+                    level: 'warning',
+                    title: `Độ đục: ${turb.toFixed(1)} NTU`,
+                    desc: 'Cảnh báo — nước hơi đục!'
+                });
+            } else {
+                statuses.push({
+                    level: 'normal',
+                    title: `Độ đục: ${turb.toFixed(1)} NTU`,
+                    desc: 'Bình thường (nước trong)'
+                });
+            }
+
+            const levelStyles = {
+                normal: {
+                    box: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+                    dot: 'bg-emerald-500'
+                },
+                warning: {
+                    box: 'bg-amber-50 border-amber-300 text-amber-900',
+                    dot: 'bg-amber-500'
+                },
+                danger: {
+                    box: 'bg-red-50 border-red-300 text-red-900',
+                    dot: 'bg-red-600'
+                }
+            };
+
+            const listEl = document.getElementById('water-status-list');
+            listEl.innerHTML = statuses.map(st => {
+                const style = levelStyles[st.level];
+                return `
+                    <div class="p-2.5 px-3 rounded-xl border text-xs sm:text-sm flex items-start gap-2.5 ${style.box}">
+                        <span class="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${style.dot}"></span>
+                        <div class="leading-snug">
+                            <span class="font-bold">${st.title}:</span>
+                            <span class="font-medium">${st.desc}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         // Hàm gọi API lấy dữ liệu và cập nhật giao diện
         async function loadDashboardData() {
             const dateVal = document.getElementById('filter-date').value;
@@ -187,23 +314,15 @@
                 const data = await response.json();
                 if (data.length === 0) return;
 
-                // Cập nhật thẻ Card thông số mới nhất
+                // Cập nhật thẻ Card thông số mới nhất (làm tròn gọn để hiển thị)
                 const latest = data[0];
-                document.getElementById('val-temp').innerText = latest.temperature + ' °C';
-                document.getElementById('val-ph').innerText = latest.ph;
-                document.getElementById('val-turbidity').innerText = latest.turbidity + ' NTU';
-                document.getElementById('val-tds').innerText = latest.tds + ' ppm';
+                document.getElementById('val-temp').innerText = Number(latest.temperature).toFixed(1) + ' °C';
+                document.getElementById('val-ph').innerText = Number(latest.ph).toFixed(2);
+                document.getElementById('val-turbidity').innerText = Number(latest.turbidity).toFixed(1) + ' NTU';
+                document.getElementById('val-tds').innerText = Number(latest.tds).toFixed(1) + ' ppm';
 
-                // Cập nhật Banner cảnh báo
-                const banner = document.getElementById('alert-banner');
-                const alertText = document.getElementById('alert-text');
-                if (latest.warning) {
-                    banner.className = "w-full lg:w-2/3 p-3.5 rounded-xl bg-red-50 border border-red-300 text-red-800 text-sm font-semibold flex items-center shadow-sm animate-pulse";
-                    alertText.innerText = latest.message;
-                } else {
-                    banner.className = "w-full lg:w-2/3 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center shadow-sm";
-                    alertText.innerText = "Môi trường nước hồ Koi hoàn toàn tối ưu và an toàn.";
-                }
+                // Cập nhật bảng thông báo trạng thái đầy đủ cả 4 thông số
+                renderFourParamStatus(latest);
 
                 // Xử lý dữ liệu biểu đồ theo chiều thời gian tăng dần
                 const chartData = [...data].reverse();
