@@ -4,19 +4,15 @@ Django settings for backend project.
 
 from pathlib import Path
 import os
-import dj_database_url # type: ignore
 
 # 1. Khai báo BASE_DIR lên đầu tiên để các biến phía dưới sử dụng được
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-perv(^$x1-tlod$x9=0=6b+e!i%r)!3va19&*8t-=1@8*)-&e7'
-)
+SECRET_KEY = 'django-insecure-perv(^$x1-tlod$x9=0=6b+e!i%r)!3va19&*8t-=1@8*)-&e7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = False  # (Sau này đưa lên production thực tế có thể đổi thành False)
 
 ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1', 'localhost']
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
@@ -34,7 +30,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # 2. Thêm WhiteNoise ở đây để phục vụ file tĩnh trên Render
+    'whitenoise.middleware.WhiteNoiseMiddleware', # 2. Thêm WhiteNoise ở đây để phục vụ file tĩnh trên Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -62,20 +58,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# Database: dùng PostgreSQL qua DATABASE_URL trên Render, fallback về SQLite khi chạy local
+# Database
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
 # Internationalization
@@ -94,7 +90,6 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
-
 # Cấu hình sau khi đăng nhập thành công sẽ tự động nhảy về trang chủ Dashboard
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'login'
