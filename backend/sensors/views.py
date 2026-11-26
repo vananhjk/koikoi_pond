@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 import json
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
@@ -11,6 +11,15 @@ from .models import SensorData, UserDevice
 @login_required(login_url='/accounts/login/')
 def index(request):
     return render(request, 'sensors/dashboard.html')
+
+
+def _to_float_or_none(val):
+    if val is None or val == "":
+        return None
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None
 
 
 @csrf_exempt
@@ -32,12 +41,23 @@ def api_upload_data(request):
             except UserDevice.DoesNotExist:
                 pass
 
+            temp = _to_float_or_none(data.get('temperature'))
+            ph = _to_float_or_none(data.get('ph'))
+            turb = _to_float_or_none(data.get('turbidity'))
+            tds = _to_float_or_none(data.get('tds'))
+
+            if None in (temp, ph, turb, tds):
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Missing or invalid numeric sensor values'},
+                    status=400
+                )
+
             SensorData.objects.create(
                 device_id=device_id,
-                temperature=data.get('temperature'),
-                turbidity=data.get('turbidity'),
-                tds=data.get('tds'),
-                ph=data.get('ph')
+                temperature=temp,
+                turbidity=turb,
+                tds=tds,
+                ph=ph
             )
             return JsonResponse({'status': 'success', 'message': 'Data saved successfully!'})
         except Exception as e:
@@ -46,10 +66,10 @@ def api_upload_data(request):
 
 
 def evaluate_four_params(item):
-    t = item.temperature
-    ph = item.ph
-    turb = item.turbidity
-    tds = item.tds
+    t = float(item.temperature)
+    ph = float(item.ph)
+    turb = float(item.turbidity)
+    tds = float(item.tds)
 
     if t < 15.0:
         temp_state = {'level': 'danger', 'label': 'Đỏ - Vượt ngưỡng', 'note': 'Nước quá lạnh'}
@@ -98,7 +118,8 @@ def get_sensor_data_api(request):
     except Exception:
         device_id = 'KOI_POND_01'
 
-    now_local = timezone.localtime(timezone.now())
+    tz = timezone.get_current_timezone()
+    now_local = timezone.localtime(timezone.now(), tz)
     seven_days_ago_local = now_local - timedelta(days=7)
 
     queryset = SensorData.objects.filter(
@@ -112,10 +133,10 @@ def get_sensor_data_api(request):
             filter_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             if filter_date < seven_days_ago_local.date() or filter_date > now_local.date():
                 return JsonResponse([], safe=False)
-            queryset = [
-                item for item in queryset
-                if timezone.localtime(item.timestamp).date() == filter_date
-            ]
+
+            day_start = timezone.make_aware(datetime.combine(filter_date, time.min), tz)
+            day_end = day_start + timedelta(days=1)
+            queryset = queryset.filter(timestamp__gte=day_start, timestamp__lt=day_end)
         except ValueError:
             pass
 
@@ -125,12 +146,12 @@ def get_sensor_data_api(request):
             'ph': item.ph,
             'turbidity': item.turbidity,
             'tds': item.tds,
-            'timestamp': timezone.localtime(item.timestamp).strftime('%H:%M:%S %d/%m/%Y'),
+            'timestamp': timezone.localtime(item.timestamp, tz).strftime('%H:%M:%S %d/%m/%Y'),
             'warning': item.is_warning(),
             'message': item.get_warning_message(),
             'parameter_statuses': evaluate_four_params(item),
         }
-        for item in list(queryset)[:200]
+        for item in queryset[:200]
     ]
     return JsonResponse(data_list, safe=False)
 
