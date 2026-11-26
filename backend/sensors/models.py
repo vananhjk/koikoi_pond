@@ -21,29 +21,36 @@ class SensorData(models.Model):
     ph = models.FloatField()
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
-    # Ngưỡng tham khảo (chỉnh lại theo thông số thực tế của hồ Koi của bạn)
-    PH_MIN, PH_MAX = 6.5, 8.5
-    TEMP_MIN, TEMP_MAX = 15.0, 30.0
-    TDS_MAX = 500.0
-    TURBIDITY_MAX = 50.0
+    TEMP_SAFE_MIN, TEMP_SAFE_MAX = 20.0, 28.0
+    TEMP_WARN_MIN, TEMP_WARN_MAX = 15.0, 30.0
+
+    PH_SAFE_MIN, PH_SAFE_MAX = 6.5, 7.5
+    PH_WARN_MIN, PH_WARN_MAX = 6.0, 8.0
+
+    TURBIDITY_SAFE_MAX = 25.0
+    TURBIDITY_WARN_MAX = 50.0
+
+    TDS_SAFE_MIN, TDS_SAFE_MAX = 100.0, 400.0
+    TDS_WARN_MAX = 500.0
 
     def get_warnings(self):
         warnings = []
-        if self.ph < self.PH_MIN:
-            warnings.append(f"pH quá thấp ({self.ph})")
-        elif self.ph > self.PH_MAX:
-            warnings.append(f"pH quá cao ({self.ph})")
 
-        if self.temperature < self.TEMP_MIN:
-            warnings.append(f"Nhiệt độ quá thấp ({self.temperature}°C)")
-        elif self.temperature > self.TEMP_MAX:
-            warnings.append(f"Nhiệt độ quá cao ({self.temperature}°C)")
+        if self.temperature < self.TEMP_WARN_MIN:
+            warnings.append(f"Nước quá lạnh ({self.temperature:.1f}°C)")
+        elif self.temperature > self.TEMP_WARN_MAX:
+            warnings.append(f"Nước quá nóng ({self.temperature:.1f}°C)")
 
-        if self.tds > self.TDS_MAX:
-            warnings.append(f"TDS vượt ngưỡng ({self.tds} ppm)")
+        if self.ph < self.PH_WARN_MIN:
+            warnings.append(f"Nước bị axit (pH {self.ph:.2f})")
+        elif self.ph > self.PH_WARN_MAX:
+            warnings.append(f"Nước bị kiềm (pH {self.ph:.2f})")
 
-        if self.turbidity > self.TURBIDITY_MAX:
-            warnings.append(f"Độ đục vượt ngưỡng ({self.turbidity} NTU)")
+        if self.turbidity > self.TURBIDITY_WARN_MAX:
+            warnings.append(f"Cảnh báo chất lượng nước - Độ đục cao ({self.turbidity:.1f} NTU)")
+
+        if self.tds > self.TDS_WARN_MAX:
+            warnings.append(f"Cảnh báo chất lượng nước và độ dẫn điện - TDS cao ({self.tds:.0f} ppm)")
 
         return warnings
 

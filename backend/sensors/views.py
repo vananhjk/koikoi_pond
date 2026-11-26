@@ -32,17 +32,12 @@ def api_upload_data(request):
             except UserDevice.DoesNotExist:
                 pass
 
-            temperature = data.get('temperature')
-            turbidity = data.get('turbidity')
-            tds = data.get('tds')
-            ph = data.get('ph')
-
             SensorData.objects.create(
                 device_id=device_id,
-                temperature=temperature,
-                turbidity=turbidity,
-                tds=tds,
-                ph=ph
+                temperature=data.get('temperature'),
+                turbidity=data.get('turbidity'),
+                tds=data.get('tds'),
+                ph=data.get('ph')
             )
             return JsonResponse({'status': 'success', 'message': 'Data saved successfully!'})
         except Exception as e:
@@ -50,11 +45,56 @@ def api_upload_data(request):
     return JsonResponse({'status': 'error', 'message': 'Only POST method allowed'}, status=405)
 
 
+def evaluate_four_params(item):
+    t = item.temperature
+    ph = item.ph
+    turb = item.turbidity
+    tds = item.tds
+
+    if t < 15.0:
+        temp_state = {'level': 'danger', 'label': 'Đỏ - Vượt ngưỡng', 'note': 'Nước quá lạnh'}
+    elif t > 30.0:
+        temp_state = {'level': 'danger', 'label': 'Đỏ - Vượt ngưỡng', 'note': 'Nước quá nóng'}
+    elif (15.0 <= t < 20.0) or (28.0 < t <= 30.0):
+        temp_state = {'level': 'warning', 'label': 'Vàng - Đáng báo động', 'note': 'Cận biên nhiệt độ (15-20°C hoặc 28-30°C)'}
+    else:
+        temp_state = {'level': 'normal', 'label': 'Xanh lá - An toàn', 'note': 'Nhiệt độ tối ưu (20-28°C)'}
+
+    if ph < 6.0:
+        ph_state = {'level': 'danger', 'label': 'Đỏ - Vượt ngưỡng', 'note': 'Nước bị axit'}
+    elif ph > 8.0:
+        ph_state = {'level': 'danger', 'label': 'Đỏ - Vượt ngưỡng', 'note': 'Nước bị kiềm'}
+    elif (6.0 <= ph < 6.5) or (7.5 < ph <= 8.0):
+        ph_state = {'level': 'warning', 'label': 'Vàng - Đáng báo động', 'note': 'Cận biên pH (6.0-6.5 hoặc 7.5-8.0)'}
+    else:
+        ph_state = {'level': 'normal', 'label': 'Xanh lá - An toàn', 'note': 'pH tối ưu (6.5-7.5)'}
+
+    if turb > 50.0:
+        turb_state = {'level': 'danger', 'label': 'Đỏ - Vượt ngưỡng', 'note': 'Cảnh báo chất lượng nước'}
+    elif 25.0 <= turb <= 50.0:
+        turb_state = {'level': 'warning', 'label': 'Vàng - Đáng báo động', 'note': 'Cảnh báo chất lượng nước (25-50 NTU)'}
+    else:
+        turb_state = {'level': 'normal', 'label': 'Xanh lá - An toàn', 'note': 'Độ đục an toàn (< 25 NTU)'}
+
+    if tds > 500.0:
+        tds_state = {'level': 'danger', 'label': 'Đỏ - Vượt ngưỡng', 'note': 'Cảnh báo chất lượng nước và độ dẫn điện'}
+    elif (tds < 100.0) or (400.0 < tds <= 500.0):
+        tds_state = {'level': 'warning', 'label': 'Vàng - Đáng báo động', 'note': 'Cảnh báo chất lượng nước và độ dẫn điện (<100 hoặc 400-500 ppm)'}
+    else:
+        tds_state = {'level': 'normal', 'label': 'Xanh lá - An toàn', 'note': 'TDS an toàn (100-400 ppm)'}
+
+    return {
+        'temperature': temp_state,
+        'ph': ph_state,
+        'turbidity': turb_state,
+        'tds': tds_state,
+    }
+
+
 @login_required(login_url='/accounts/login/')
 def get_sensor_data_api(request):
     try:
-        user_device = request.user.device
-        device_id = user_device.device_id
+        device_id = request.user.device.device_id
     except Exception:
         device_id = 'KOI_POND_01'
 
@@ -88,6 +128,7 @@ def get_sensor_data_api(request):
             'timestamp': timezone.localtime(item.timestamp).strftime('%H:%M:%S %d/%m/%Y'),
             'warning': item.is_warning(),
             'message': item.get_warning_message(),
+            'parameter_statuses': evaluate_four_params(item),
         }
         for item in list(queryset)[:200]
     ]

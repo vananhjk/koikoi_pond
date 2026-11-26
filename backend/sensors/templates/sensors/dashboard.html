@@ -1,293 +1,740 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KoiPond Pro - Hệ Thống Giám Sát Hồ Koi Thông Minh</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .koi-dark { background-color: #0f172a; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KoiPond SaaS Cloud — Dashboard</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #111827;
+      --danger: #dc2626;
+      --warning: #eab308;
+      --safe: #16a34a;
+      --info: #2563eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Topbar */
+    .topbar {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid #dc2626;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+
+    .brand-title span {
+      color: #f43f5e;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+    }
+
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-badge {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border: 1px solid #334155;
+    }
+
+    .btn-logout {
+      background: #dc2626;
+      color: #ffffff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .btn-logout:hover {
+      background: #b91c1c;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1120px;
+      margin: 20px auto 40px;
+      padding: 0 16px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Top status panel */
+    #status-banner {
+      padding: 12px 16px;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    #status-banner.banner-safe {
+      background: #ecfdf5;
+      border-color: #86efac;
+      color: #14532d;
+    }
+
+    #status-banner.banner-warning {
+      background: #fefce8;
+      border-color: #fde047;
+      color: #713f12;
+    }
+
+    #status-banner.banner-danger {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #7f1d1d;
+    }
+
+    .param-status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .param-pill {
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid #e5e7eb;
+      border-left: 5px solid #9ca3af;
+      background: #f9fafb;
+    }
+
+    .param-pill.normal {
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+      border-left-color: var(--safe);
+      color: #14532d;
+    }
+
+    .param-pill.warning {
+      background: #fefce8;
+      border-color: #fef08a;
+      border-left-color: var(--warning);
+      color: #713f12;
+    }
+
+    .param-pill.danger {
+      background: #fef2f2;
+      border-color: #fecaca;
+      border-left-color: var(--danger);
+      color: #7f1d1d;
+    }
+
+    .param-pill-title {
+      font-weight: 700;
+      font-size: 0.96rem;
+    }
+
+    .param-pill-badge {
+      font-size: 0.84rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .param-pill-note {
+      font-size: 0.8rem;
+      margin-top: 3px;
+      opacity: 0.92;
+    }
+
+    /* Filter bar */
+    .filter-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #374151;
+      letter-spacing: 0.4px;
+    }
+
+    .date-input {
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .btn-dark {
+      background: #111827;
+      color: #ffffff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .btn-dark:hover {
+      background: #1f2937;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+    }
+
+    /* Metric cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 720px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 22px;
+      border-top: 4px solid #6b7280;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .metric-card.temp { border-top-color: var(--danger); }
+    .metric-card.ph { border-top-color: #0f172a; }
+    .metric-card.turbidity { border-top-color: var(--warning); }
+    .metric-card.tds { border-top-color: var(--info); }
+
+    .metric-label {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-top: 10px;
+      color: var(--text);
+    }
+
+    /* History log */
+    .log-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .log-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .log-sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .retention-pill {
+      background: #dcfce7;
+      color: #166534;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 11px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #374151;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px 12px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .badge-safe {
+      color: #166534;
+      background: #dcfce7;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .badge-warn {
+      color: #854d0e;
+      background: #fef9c3;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .badge-danger {
+      color: #991b1b;
+      background: #fee2e2;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+  </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800">
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div>
+        <div class="brand-title">KOIPOND <span>SAAS CLOUD</span></div>
+        <div class="brand-sub">Good Koi, Good Choice</div>
+      </div>
+    </div>
 
-    <!-- Header / Navbar -->
-    <header class="koi-dark text-white shadow-xl py-4 px-6 flex flex-col sm:flex-row justify-between items-center border-b-4 border-red-600">
-        <div class="flex items-center space-x-3 mb-2 sm:mb-0">
-            <span class="text-3xl">🎏</span>
-            <div>
-                <h1 class="text-xl font-black tracking-wider uppercase">KoiPond <span class="text-red-500">SaaS Cloud</span></h1>
-                <p class="text-xs text-slate-400">Good Koi, Good Choice</p>
-            </div>
+    <div class="user-actions">
+      <div class="user-badge">Tài khoản: <strong>{{ request.user.username }}</strong></div>
+      <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+        {% csrf_token %}
+        <button type="submit" class="btn-logout">Đăng xuất</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Ô đầu trang: trạng thái tổng quan + 4 thông số (Xanh / Vàng / Đỏ) -->
+    <section class="panel" id="top-four-params-box">
+      <div id="status-banner">⏳ Đang tải dữ liệu cảm biến (7 ngày gần nhất)...</div>
+      <div class="param-status-grid" id="water-status-list"></div>
+    </section>
+
+    <!-- Bộ lọc 7 ngày gần nhất -->
+    <section class="panel">
+      <div class="filter-row">
+        <span class="filter-label">NGÀY (7 NGÀY):</span>
+        <input type="date" id="filter-date" class="date-input" />
+        <button type="button" id="btn-search" class="btn-dark">Tra cứu</button>
+        <button type="button" id="btn-all-7d" class="btn-secondary">7 ngày qua</button>
+      </div>
+    </section>
+
+    <!-- 4 thẻ giá trị mới nhất -->
+    <section class="metrics-grid">
+      <div class="metric-card temp">
+        <div class="metric-label">NHIỆT ĐỘ NƯỚC</div>
+        <div class="metric-value" id="val-temp">-- °C</div>
+      </div>
+
+      <div class="metric-card ph">
+        <div class="metric-label">ĐỘ PH</div>
+        <div class="metric-value" id="val-ph">--</div>
+      </div>
+
+      <div class="metric-card turbidity">
+        <div class="metric-label">ĐỘ ĐỤC (TURBIDITY)</div>
+        <div class="metric-value" id="val-turbidity">-- NTU</div>
+      </div>
+
+      <div class="metric-card tds">
+        <div class="metric-label">TỔNG CHẤT RẮN (TDS)</div>
+        <div class="metric-value" id="val-tds">-- ppm</div>
+      </div>
+    </section>
+
+    <!-- Nhật ký 7 ngày -->
+    <section class="panel">
+      <div class="log-header">
+        <div>
+          <h2 class="log-title">📋 Nhật ký dữ liệu (6:00, 12:00, 21:00 &amp; Cảnh báo vượt ngưỡng)</h2>
+          <div class="log-sub">Hiển thị liên tục trên LCD • Gửi server vào 3 mốc cố định khi ổn định hoặc ngay khi vượt ngưỡng</div>
         </div>
-        <div class="flex items-center space-x-3 text-sm">
-            <span class="bg-slate-800 py-1.5 px-4 rounded-full border border-slate-700 text-slate-200">
-                👤 Tài khoản: <b>{{ request.user.username }}</b>
-            </span>
-            <form action="/accounts/logout/" method="post" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition font-medium shadow cursor-pointer">
-                    Đăng xuất
-                </button>
-            </form>
-        </div>
-    </header>
+        <div class="retention-pill">Lưu trữ &amp; truy cập: 7 ngày đổ lại</div>
+      </div>
 
-    <!-- Main Dashboard Container -->
-    <main class="container mx-auto px-4 py-6 max-w-7xl">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>THỜI GIAN</th>
+              <th>NHIỆT ĐỘ</th>
+              <th>ĐỘ PH</th>
+              <th>ĐỘ ĐỤC</th>
+              <th>TDS</th>
+              <th>TRẠNG THÁI</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <tr>
+              <td colspan="6" class="empty-state">Đang tải dữ liệu...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-        <!-- Thanh Trạng thái 4 Thông số & Bộ chọn lịch (7 ngày đổ lại) -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div id="water-status-list" class="w-full lg:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                <div class="p-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-sm font-medium flex items-center gap-2">
-                    <span>⏳</span>
-                    <span>Đang tải dữ liệu cảm biến (7 ngày gần nhất)...</span>
-                </div>
-            </div>
+  <script>
+    const API_URL = "/api/sensors/data/";
 
-            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end self-end lg:self-center">
-                <label for="filter-date" class="text-xs font-bold text-slate-500 uppercase">Ngày (7 ngày):</label>
-                <input type="date" id="filter-date" class="border border-slate-300 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-red-500 bg-slate-50">
-                <button onclick="loadDashboardData()" class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-1.5 rounded-xl transition shadow cursor-pointer">Tra cứu</button>
-                <button onclick="resetSevenDays()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-medium px-3 py-1.5 rounded-xl transition cursor-pointer">7 ngày qua</button>
-            </div>
-        </div>
+    function getStatusMeta(paramKey, val) {
+      const num = Number(val);
+      if (val === null || val === undefined || val === "" || Number.isNaN(num)) {
+        return {
+          level: "",
+          badge: "Chưa có dữ liệu",
+          note: "Đang chờ bản ghi từ thiết bị"
+        };
+      }
 
-        <!-- 4 Thẻ Cards hiển thị thông số gần nhất -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-red-600 relative overflow-hidden">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Nhiệt độ nước</p>
-                <h3 id="val-temp" class="text-3xl font-black text-slate-900 mt-2">-- °C</h3>
-                <span class="absolute right-3 top-3 text-3xl opacity-10">🌡️</span>
-            </div>
-            <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-slate-900 relative overflow-hidden">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Độ pH</p>
-                <h3 id="val-ph" class="text-3xl font-black text-slate-900 mt-2">--</h3>
-                <span class="absolute right-3 top-3 text-3xl opacity-10">⚗️</span>
-            </div>
-            <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-amber-500 relative overflow-hidden">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Độ đục (Turbidity)</p>
-                <h3 id="val-turbidity" class="text-3xl font-black text-slate-900 mt-2">-- NTU</h3>
-                <span class="absolute right-3 top-3 text-3xl opacity-10">💧</span>
-            </div>
-            <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-blue-600 relative overflow-hidden">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng chất rắn (TDS)</p>
-                <h3 id="val-tds" class="text-3xl font-black text-slate-900 mt-2">-- ppm</h3>
-                <span class="absolute right-3 top-3 text-3xl opacity-10">🧪</span>
-            </div>
-        </div>
-
-        <!-- Bảng lịch sử dữ liệu 7 ngày gần nhất (6h, 12h, 21h khi ổn định & khi vượt ngưỡng) -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                <div>
-                    <h3 class="text-base font-bold text-slate-800">📋 Nhật ký dữ liệu (6:00, 12:00, 21:00 & Cảnh báo vượt ngưỡng)</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Hiển thị liên tục trên LCD • Gửi server vào 3 mốc cố định khi ổn định hoặc ngay khi vượt ngưỡng</p>
-                </div>
-                <span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 py-1 px-3 rounded-full font-semibold">
-                    Lưu trữ & truy cập: 7 ngày đổ lại
-                </span>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                        <tr class="border-b border-slate-200 text-xs uppercase text-slate-500 bg-slate-50">
-                            <th class="py-3 px-3">Thời gian</th>
-                            <th class="py-3 px-3">Nhiệt độ</th>
-                            <th class="py-3 px-3">Độ pH</th>
-                            <th class="py-3 px-3">Độ đục</th>
-                            <th class="py-3 px-3">TDS</th>
-                            <th class="py-3 px-3">Trạng thái</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-table-body" class="divide-y divide-slate-100">
-                        <tr>
-                            <td colspan="6" class="py-6 text-center text-slate-400">Đang tải dữ liệu...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        function formatLocalDate(dateObj) {
-            const y = dateObj.getFullYear();
-            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const d = String(dateObj.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
+      if (paramKey === "temperature") {
+        if (num < 15) {
+          return {
+            level: "danger",
+            badge: "Đỏ • Vượt ngưỡng",
+            note: "Cảnh báo: Nước quá lạnh (< 15°C)"
+          };
         }
-
-        function initSevenDayRange() {
-            const today = new Date();
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(today.getDate() - 7);
-
-            const dateInput = document.getElementById('filter-date');
-            dateInput.max = formatLocalDate(today);
-            dateInput.min = formatLocalDate(sevenDaysAgo);
+        if (num > 30) {
+          return {
+            level: "danger",
+            badge: "Đỏ • Vượt ngưỡng",
+            note: "Cảnh báo: Nước quá nóng (> 30°C)"
+          };
         }
-
-        function resetSevenDays() {
-            document.getElementById('filter-date').value = '';
-            loadDashboardData();
+        if ((num >= 15 && num < 20) || (num > 28 && num <= 30)) {
+          return {
+            level: "warning",
+            badge: "Vàng • Đáng báo động",
+            note: "Cận biên nhiệt độ (15–20°C hoặc 28–30°C)"
+          };
         }
+        return {
+          level: "normal",
+          badge: "Xanh lá • An toàn",
+          note: "Vùng an toàn (20–28°C)"
+        };
+      }
 
-        function renderFourParamStatus(latest) {
-            const ph = Number(latest.ph);
-            const temp = Number(latest.temperature);
-            const tds = Number(latest.tds);
-            const turb = Number(latest.turbidity);
-
-            const statuses = [];
-
-            if (ph < 6.8 || ph > 8.0) {
-                statuses.push({
-                    level: 'danger',
-                    title: `pH: ${ph.toFixed(2)}`,
-                    desc: ph < 6.8 ? 'Cảnh báo — môi trường có tính axit!' : 'Cảnh báo — môi trường có tính kiềm!'
-                });
-            } else {
-                statuses.push({
-                    level: 'normal',
-                    title: `pH: ${ph.toFixed(2)}`,
-                    desc: 'Bình thường (6.8 - 8.0)'
-                });
-            }
-
-            if (temp < 20.0 || temp > 28.0) {
-                statuses.push({
-                    level: temp > 28.0 ? 'danger' : 'warning',
-                    title: `Nhiệt độ: ${temp.toFixed(1)} °C`,
-                    desc: temp > 28.0 ? 'Cảnh báo — nước quá nóng!' : 'Cảnh báo — nước quá lạnh!'
-                });
-            } else {
-                statuses.push({
-                    level: 'normal',
-                    title: `Nhiệt độ: ${temp.toFixed(1)} °C`,
-                    desc: 'Bình thường (20.0 - 28.0 °C)'
-                });
-            }
-
-            if (tds < 100 || tds > 400) {
-                statuses.push({
-                    level: tds > 400 ? 'danger' : 'warning',
-                    title: `TDS: ${tds.toFixed(1)} ppm`,
-                    desc: tds > 400 ? 'Cảnh báo — TDS cao!' : 'Cảnh báo — TDS thấp!'
-                });
-            } else {
-                statuses.push({
-                    level: 'normal',
-                    title: `TDS: ${tds.toFixed(1)} ppm`,
-                    desc: 'Bình thường (100 - 400 ppm)'
-                });
-            }
-
-            if (turb > 50 || turb >= 25) {
-                statuses.push({
-                    level: turb > 50 ? 'danger' : 'warning',
-                    title: `Độ đục: ${turb.toFixed(1)} NTU`,
-                    desc: turb > 50 ? 'Cảnh báo — nước đục cao!' : 'Cảnh báo — nước hơi đục!'
-                });
-            } else {
-                statuses.push({
-                    level: 'normal',
-                    title: `Độ đục: ${turb.toFixed(1)} NTU`,
-                    desc: 'Bình thường (< 25 NTU)'
-                });
-            }
-
-            const levelStyles = {
-                normal: { box: 'bg-emerald-50 border-emerald-200 text-emerald-900', dot: 'bg-emerald-500' },
-                warning: { box: 'bg-amber-50 border-amber-300 text-amber-900', dot: 'bg-amber-500' },
-                danger: { box: 'bg-red-50 border-red-300 text-red-900', dot: 'bg-red-600' }
-            };
-
-            document.getElementById('water-status-list').innerHTML = statuses.map(st => {
-                const style = levelStyles[st.level];
-                return `
-                    <div class="p-2.5 px-3 rounded-xl border text-xs sm:text-sm flex items-start gap-2.5 ${style.box}">
-                        <span class="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${style.dot}"></span>
-                        <div class="leading-snug">
-                            <span class="font-bold">${st.title}:</span>
-                            <span class="font-medium">${st.desc}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+      if (paramKey === "ph") {
+        if (num < 6) {
+          return {
+            level: "danger",
+            badge: "Đỏ • Vượt ngưỡng",
+            note: "Cảnh báo: Nước bị axit (< 6.0)"
+          };
         }
-
-        function renderHistoryTable(rows) {
-            const tbody = document.getElementById('history-table-body');
-            if (!rows || rows.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="py-6 text-center text-slate-400">Không có bản ghi nào trong khoảng 7 ngày gần nhất cho lựa chọn này.</td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = rows.map(item => {
-                const isWarn = Boolean(item.warning);
-                const badge = isWarn
-                    ? `<span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">${item.message || 'Vượt ngưỡng'}</span>`
-                    : `<span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Ổn định</span>`;
-
-                return `
-                    <tr class="${isWarn ? 'bg-red-50/40' : 'hover:bg-slate-50'}">
-                        <td class="py-2.5 px-3 font-medium text-slate-700">${item.timestamp}</td>
-                        <td class="py-2.5 px-3">${Number(item.temperature).toFixed(1)} °C</td>
-                        <td class="py-2.5 px-3">${Number(item.ph).toFixed(2)}</td>
-                        <td class="py-2.5 px-3">${Number(item.turbidity).toFixed(1)} NTU</td>
-                        <td class="py-2.5 px-3">${Number(item.tds).toFixed(1)} ppm</td>
-                        <td class="py-2.5 px-3">${badge}</td>
-                    </tr>
-                `;
-            }).join('');
+        if (num > 8) {
+          return {
+            level: "danger",
+            badge: "Đỏ • Vượt ngưỡng",
+            note: "Cảnh báo: Nước bị kiềm (> 8.0)"
+          };
         }
-
-        async function loadDashboardData() {
-            const dateInput = document.getElementById('filter-date');
-            const dateVal = dateInput.value;
-
-            let url = '/api/sensors/data/';
-            if (dateVal) {
-                if (dateVal < dateInput.min || dateVal > dateInput.max) {
-                    alert("Chỉ hỗ trợ tra cứu dữ liệu trong vòng 7 ngày đổ lại!");
-                    dateInput.value = '';
-                    url = '/api/sensors/data/';
-                } else {
-                    url += `?date=${dateVal}`;
-                }
-            }
-
-            try {
-                const response = await fetch(url);
-                if (response.status === 403) {
-                    alert("Tài khoản của bạn chưa được liên kết với mã thiết bị ESP32 nào trong hệ thống quản trị!");
-                    return;
-                }
-                const data = await response.json();
-                renderHistoryTable(data);
-
-                if (data.length === 0) return;
-
-                const latest = data[0];
-                document.getElementById('val-temp').innerText = Number(latest.temperature).toFixed(1) + ' °C';
-                document.getElementById('val-ph').innerText = Number(latest.ph).toFixed(2);
-                document.getElementById('val-turbidity').innerText = Number(latest.turbidity).toFixed(1) + ' NTU';
-                document.getElementById('val-tds').innerText = Number(latest.tds).toFixed(1) + ' ppm';
-
-                renderFourParamStatus(latest);
-            } catch (err) {
-                console.error("Lỗi khi tải dữ liệu:", err);
-            }
+        if ((num >= 6 && num < 6.5) || (num > 7.5 && num <= 8)) {
+          return {
+            level: "warning",
+            badge: "Vàng • Đáng báo động",
+            note: "Cận biên độ pH (6.0–6.5 hoặc 7.5–8.0)"
+          };
         }
+        return {
+          level: "normal",
+          badge: "Xanh lá • An toàn",
+          note: "Vùng an toàn (6.5–7.5)"
+        };
+      }
 
-        initSevenDayRange();
-        loadDashboardData();
-    </script>
+      if (paramKey === "turbidity") {
+        if (num > 50) {
+          return {
+            level: "danger",
+            badge: "Đỏ • Vượt ngưỡng",
+            note: "Cảnh báo chất lượng nước (> 50 NTU)"
+          };
+        }
+        if (num >= 25 && num <= 50) {
+          return {
+            level: "warning",
+            badge: "Vàng • Đáng báo động",
+            note: "Cảnh báo chất lượng nước (25–50 NTU)"
+          };
+        }
+        return {
+          level: "normal",
+          badge: "Xanh lá • An toàn",
+          note: "Vùng an toàn (< 25 NTU)"
+        };
+      }
+
+      // tds
+      if (num > 500) {
+        return {
+          level: "danger",
+          badge: "Đỏ • Vượt ngưỡng",
+          note: "Cảnh báo chất lượng nước và độ dẫn điện (> 500 ppm)"
+        };
+      }
+      if (num < 100 || (num > 400 && num <= 500)) {
+        return {
+          level: "warning",
+          badge: "Vàng • Đáng báo động",
+          note: "Cảnh báo chất lượng nước và độ dẫn điện (< 100 hoặc 400–500 ppm)"
+        };
+      }
+      return {
+        level: "normal",
+        badge: "Xanh lá • An toàn",
+        note: "Vùng an toàn (100–400 ppm)"
+      };
+    }
+
+    function renderTopFourParams(latestItem) {
+      const container = document.getElementById("water-status-list");
+      const banner = document.getElementById("status-banner");
+      if (!container || !banner) return;
+
+      const specs = [
+        { key: "temperature", label: "Nhiệt độ", unit: " °C", raw: latestItem?.temperature },
+        { key: "ph", label: "Độ pH", unit: "", raw: latestItem?.ph },
+        { key: "turbidity", label: "Độ đục", unit: " NTU", raw: latestItem?.turbidity },
+        { key: "tds", label: "TDS", unit: " ppm", raw: latestItem?.tds }
+      ];
+
+      let hasDanger = false;
+      let hasWarning = false;
+
+      container.innerHTML = specs.map((sp) => {
+        const meta = getStatusMeta(sp.key, sp.raw);
+        if (meta.level === "danger") hasDanger = true;
+        if (meta.level === "warning") hasWarning = true;
+
+        const displayVal = (sp.raw === null || sp.raw === undefined || sp.raw === "")
+          ? `--${sp.unit}`
+          : `${sp.raw}${sp.unit}`;
+
+        return `
+          <div class="param-pill ${meta.level}">
+            <div class="param-pill-title">${sp.label}: ${displayVal}</div>
+            <div class="param-pill-badge">${meta.badge}</div>
+            <div class="param-pill-note">${meta.note}</div>
+          </div>
+        `;
+      }).join("");
+
+      banner.classList.remove("banner-safe", "banner-warning", "banner-danger");
+      if (!latestItem) {
+        banner.textContent = "Chưa có dữ liệu cảm biến trong 7 ngày gần nhất.";
+      } else if (hasDanger) {
+        banner.classList.add("banner-danger");
+        banner.textContent = `🚨 ${latestItem.message || "Có thông số vượt ngưỡng nguy hiểm!"} (Cập nhật: ${latestItem.timestamp})`;
+      } else if (hasWarning) {
+        banner.classList.add("banner-warning");
+        banner.textContent = `⚠️ Có thông số đang ở mức đáng báo động / cận biên (Cập nhật: ${latestItem.timestamp})`;
+      } else {
+        banner.classList.add("banner-safe");
+        banner.textContent = `✅ Môi trường nước hồ Koi đang ở vùng an toàn (Cập nhật: ${latestItem.timestamp})`;
+      }
+    }
+
+    function renderCards(latestItem) {
+      document.getElementById("val-temp").textContent =
+        latestItem && latestItem.temperature !== null ? `${latestItem.temperature} °C` : "-- °C";
+      document.getElementById("val-ph").textContent =
+        latestItem && latestItem.ph !== null ? `${latestItem.ph}` : "--";
+      document.getElementById("val-turbidity").textContent =
+        latestItem && latestItem.turbidity !== null ? `${latestItem.turbidity} NTU` : "-- NTU";
+      document.getElementById("val-tds").textContent =
+        latestItem && latestItem.tds !== null ? `${latestItem.tds} ppm` : "-- ppm";
+    }
+
+    function rowStatusBadge(item) {
+      const levels = [
+        getStatusMeta("temperature", item.temperature).level,
+        getStatusMeta("ph", item.ph).level,
+        getStatusMeta("turbidity", item.turbidity).level,
+        getStatusMeta("tds", item.tds).level
+      ];
+      if (levels.includes("danger")) {
+        return `<span class="badge-danger">${item.message || "Vượt ngưỡng"}</span>`;
+      }
+      if (levels.includes("warning")) {
+        return `<span class="badge-warn">Đáng báo động</span>`;
+      }
+      return `<span class="badge-safe">An toàn</span>`;
+    }
+
+    function renderHistoryTable(rows) {
+      const tbody = document.getElementById("history-tbody");
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">Không có bản ghi nào trong khoảng 7 ngày gần nhất cho lựa chọn này.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((r) => `
+        <tr>
+          <td>${r.timestamp}</td>
+          <td>${r.temperature} °C</td>
+          <td>${r.ph}</td>
+          <td>${r.turbidity} NTU</td>
+          <td>${r.tds} ppm</td>
+          <td>${rowStatusBadge(r)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function setDateBounds() {
+      const input = document.getElementById("filter-date");
+      const today = new Date();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(today.getDate() - 7);
+
+      const fmt = (d) => d.toISOString().split("T")[0];
+      input.max = fmt(today);
+      input.min = fmt(sevenDaysAgo);
+    }
+
+    async function loadSensorData(dateStr = "") {
+      const banner = document.getElementById("status-banner");
+      banner.classList.remove("banner-safe", "banner-warning", "banner-danger");
+      banner.textContent = "⏳ Đang tải dữ liệu cảm biến (7 ngày gần nhất)...";
+
+      try {
+        const url = dateStr ? `${API_URL}?date=${encodeURIComponent(dateStr)}` : API_URL;
+        const res = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        const rows = Array.isArray(data) ? data : [];
+        const latest = rows.length > 0 ? rows[0] : null;
+
+        renderTopFourParams(latest);
+        renderCards(latest);
+        renderHistoryTable(rows);
+      } catch (err) {
+        renderTopFourParams(null);
+        renderCards(null);
+        renderHistoryTable([]);
+        banner.classList.add("banner-danger");
+        banner.textContent = `❌ Không thể tải dữ liệu từ API (${err.message}).`;
+      }
+    }
+
+    document.getElementById("btn-search").addEventListener("click", () => {
+      const dateVal = document.getElementById("filter-date").value;
+      loadSensorData(dateVal);
+    });
+
+    document.getElementById("btn-all-7d").addEventListener("click", () => {
+      document.getElementById("filter-date").value = "";
+      loadSensorData("");
+    });
+
+    setDateBounds();
+    loadSensorData("");
+  </script>
 </body>
 </html>
