@@ -4,17 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KoiPond Pro - Hệ Thống Giám Sát Hồ Koi Thông Minh</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Tông màu phong cách Cá Koi chủ đạo: Đỏ hoàng gia, Đen tuyền, Trắng sứ, Vàng nghệ */
-        .koi-red { color: #E63946; }
-        .bg-koi-red { background-color: #E63946; }
-        .border-koi-red { border-color: #E63946; }
         .koi-dark { background-color: #0f172a; }
-        .koi-accent { background-color: #E63946; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800">
@@ -32,7 +24,6 @@
             <span class="bg-slate-800 py-1.5 px-4 rounded-full border border-slate-700 text-slate-200">
                 👤 Tài khoản: <b>{{ request.user.username }}</b>
             </span>
-            <!-- Đã trỏ đúng đường dẫn đăng xuất về /accounts/logout/ -->
             <form action="/accounts/logout/" method="post" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition font-medium shadow cursor-pointer">
@@ -44,46 +35,41 @@
 
     <!-- Main Dashboard Container -->
     <main class="container mx-auto px-4 py-6 max-w-7xl">
-        
-        <!-- Thanh Trạng thái 4 Thông số & Bộ chọn lịch (Tối đa 3 tháng) -->
+
+        <!-- Thanh Trạng thái 4 Thông số & Bộ chọn lịch (7 ngày đổ lại) -->
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <!-- Bảng thông báo chi tiết cả 4 thông số -->
             <div id="water-status-list" class="w-full lg:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 <div class="p-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-sm font-medium flex items-center gap-2">
                     <span>⏳</span>
-                    <span>Đang kết nối và tải dữ liệu cảm biến...</span>
+                    <span>Đang tải dữ liệu cảm biến (7 ngày gần nhất)...</span>
                 </div>
             </div>
-            
-            <!-- Bộ chọn ngày theo lịch -->
-            <div class="flex items-center space-x-2 w-full lg:w-auto justify-end self-end lg:self-center">
-                <label for="filter-date" class="text-xs font-bold text-slate-500 uppercase">Chọn ngày xem:</label>
+
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end self-end lg:self-center">
+                <label for="filter-date" class="text-xs font-bold text-slate-500 uppercase">Ngày (7 ngày):</label>
                 <input type="date" id="filter-date" class="border border-slate-300 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-red-500 bg-slate-50">
-                <button onclick="loadDashboardData()" class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-1.5 rounded-xl transition shadow">Tra cứu</button>
+                <button onclick="loadDashboardData()" class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-1.5 rounded-xl transition shadow cursor-pointer">Tra cứu</button>
+                <button onclick="resetSevenDays()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-medium px-3 py-1.5 rounded-xl transition cursor-pointer">7 ngày qua</button>
             </div>
         </div>
 
-        <!-- 4 Thẻ Cards hiển thị thông số thời gian thực -->
+        <!-- 4 Thẻ Cards hiển thị thông số gần nhất -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-            <!-- Nhiệt độ -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-red-600 relative overflow-hidden">
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Nhiệt độ nước</p>
                 <h3 id="val-temp" class="text-3xl font-black text-slate-900 mt-2">-- °C</h3>
                 <span class="absolute right-3 top-3 text-3xl opacity-10">🌡️</span>
             </div>
-            <!-- Độ pH -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-slate-900 relative overflow-hidden">
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Độ pH</p>
                 <h3 id="val-ph" class="text-3xl font-black text-slate-900 mt-2">--</h3>
                 <span class="absolute right-3 top-3 text-3xl opacity-10">⚗️</span>
             </div>
-            <!-- Độ đục -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-amber-500 relative overflow-hidden">
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Độ đục (Turbidity)</p>
                 <h3 id="val-turbidity" class="text-3xl font-black text-slate-900 mt-2">-- NTU</h3>
                 <span class="absolute right-3 top-3 text-3xl opacity-10">💧</span>
             </div>
-            <!-- TDS -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-blue-600 relative overflow-hidden">
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng chất rắn (TDS)</p>
                 <h3 id="val-tds" class="text-3xl font-black text-slate-900 mt-2">-- ppm</h3>
@@ -91,92 +77,63 @@
             </div>
         </div>
 
-        <!-- KHU VỰC BIỂU ĐỒ (Biểu đồ tổng hợp & 4 biểu đồ chi tiết từng thông số) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            <!-- 1. Biểu đồ tổng hợp cả 4 thông số -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">📊 Biểu đồ tổng hợp đa thông số chất lượng nước</h3>
-                    <span class="text-xs bg-slate-100 text-slate-600 py-1 px-3 rounded-full font-medium">Lưu trữ tối đa 3 tháng</span>
+        <!-- Bảng lịch sử dữ liệu 7 ngày gần nhất (6h, 12h, 21h khi ổn định & khi vượt ngưỡng) -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-800">📋 Nhật ký dữ liệu (6:00, 12:00, 21:00 & Cảnh báo vượt ngưỡng)</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Hiển thị liên tục trên LCD • Gửi server vào 3 mốc cố định khi ổn định hoặc ngay khi vượt ngưỡng</p>
                 </div>
-                <div class="relative h-[320px]">
-                    <canvas id="combinedChart"></canvas>
-                </div>
+                <span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 py-1 px-3 rounded-full font-semibold">
+                    Lưu trữ & truy cập: 7 ngày đổ lại
+                </span>
             </div>
 
-            <!-- 2. Biểu đồ riêng: Nhiệt độ -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">🌡️ Biểu đồ Nhiệt độ (°C)</h3>
-                <div class="relative h-[220px]"><canvas id="tempChart"></canvas></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-xs uppercase text-slate-500 bg-slate-50">
+                            <th class="py-3 px-3">Thời gian</th>
+                            <th class="py-3 px-3">Nhiệt độ</th>
+                            <th class="py-3 px-3">Độ pH</th>
+                            <th class="py-3 px-3">Độ đục</th>
+                            <th class="py-3 px-3">TDS</th>
+                            <th class="py-3 px-3">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="6" class="py-6 text-center text-slate-400">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-
-            <!-- 3. Biểu đồ riêng: Độ pH -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">⚗️ Biểu đồ Độ pH</h3>
-                <div class="relative h-[220px]"><canvas id="phChart"></canvas></div>
-            </div>
-
-            <!-- 4. Biểu đồ riêng: Độ đục -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">💧 Biểu đồ Độ đục (NTU)</h3>
-                <div class="relative h-[220px]"><canvas id="turbidityChart"></canvas></div>
-            </div>
-
-            <!-- 5. Biểu đồ riêng: TDS -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">🧪 Biểu đồ Khoáng chất TDS (ppm)</h3>
-                <div class="relative h-[220px]"><canvas id="tdsChart"></canvas></div>
-            </div>
-
         </div>
     </main>
 
-    <!-- JavaScript Xử lý Chart.js & Realtime API -->
     <script>
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { x: { grid: { display: false } } }
-        };
+        function formatLocalDate(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
 
-        // Khởi tạo các biểu đồ
-        const combinedChart = new Chart(document.getElementById('combinedChart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [
-                { label: 'Nhiệt độ (°C)', borderColor: '#E63946', data: [], tension: 0.3 },
-                { label: 'Độ pH', borderColor: '#0f172a', data: [], tension: 0.3, hidden: true },
-                { label: 'Độ đục (NTU)', borderColor: '#F59E0B', data: [], tension: 0.3, hidden: true },
-                { label: 'TDS (ppm)', borderColor: '#3B82F6', data: [], tension: 0.3, hidden: true }
-            ]},
-            options: commonOptions
-        });
+        function initSevenDayRange() {
+            const today = new Date();
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(today.getDate() - 7);
 
-        const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'Nhiệt độ', borderColor: '#E63946', backgroundColor: 'rgba(230, 57, 70, 0.08)', fill: true, data: [], tension: 0.3 }] },
-            options: commonOptions
-        });
+            const dateInput = document.getElementById('filter-date');
+            dateInput.max = formatLocalDate(today);
+            dateInput.min = formatLocalDate(sevenDaysAgo);
+        }
 
-        const phChart = new Chart(document.getElementById('phChart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'pH', borderColor: '#0f172a', backgroundColor: 'rgba(15, 23, 42, 0.08)', fill: true, data: [], tension: 0.3 }] },
-            options: commonOptions
-        });
+        function resetSevenDays() {
+            document.getElementById('filter-date').value = '';
+            loadDashboardData();
+        }
 
-        const turbidityChart = new Chart(document.getElementById('turbidityChart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'Độ đục', borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.08)', fill: true, data: [], tension: 0.3 }] },
-            options: commonOptions
-        });
-
-        const tdsChart = new Chart(document.getElementById('tdsChart').getContext('2d'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'TDS', borderColor: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)', fill: true, data: [], tension: 0.3 }] },
-            options: commonOptions
-        });
-
-        // Hàm đánh giá và hiển thị đầy đủ trạng thái 4 thông số
         function renderFourParamStatus(latest) {
             const ph = Number(latest.ph);
             const temp = Number(latest.temperature);
@@ -185,107 +142,69 @@
 
             const statuses = [];
 
-            // 1. pH: Bình thường 6.8 - 8.0 | < 6.8 axit | > 8.0 kiềm
-            if (ph < 6.8) {
+            if (ph < 6.8 || ph > 8.0) {
                 statuses.push({
                     level: 'danger',
                     title: `pH: ${ph.toFixed(2)}`,
-                    desc: 'Cảnh báo — môi trường có tính axit!'
-                });
-            } else if (ph > 8.0) {
-                statuses.push({
-                    level: 'danger',
-                    title: `pH: ${ph.toFixed(2)}`,
-                    desc: 'Cảnh báo — môi trường có tính kiềm!'
+                    desc: ph < 6.8 ? 'Cảnh báo — môi trường có tính axit!' : 'Cảnh báo — môi trường có tính kiềm!'
                 });
             } else {
                 statuses.push({
                     level: 'normal',
                     title: `pH: ${ph.toFixed(2)}`,
-                    desc: 'Bình thường (môi trường trung tính ổn định)'
+                    desc: 'Bình thường (6.8 - 8.0)'
                 });
             }
 
-            // 2. Nhiệt độ: Bình thường 20.0 - 28.0 °C
-            if (temp < 20.0) {
+            if (temp < 20.0 || temp > 28.0) {
                 statuses.push({
-                    level: 'warning',
+                    level: temp > 28.0 ? 'danger' : 'warning',
                     title: `Nhiệt độ: ${temp.toFixed(1)} °C`,
-                    desc: 'Cảnh báo — nước quá lạnh, dễ sốc nhiệt!'
-                });
-            } else if (temp > 28.0) {
-                statuses.push({
-                    level: 'danger',
-                    title: `Nhiệt độ: ${temp.toFixed(1)} °C`,
-                    desc: 'Cảnh báo — nước quá nóng, giảm oxy!'
+                    desc: temp > 28.0 ? 'Cảnh báo — nước quá nóng!' : 'Cảnh báo — nước quá lạnh!'
                 });
             } else {
                 statuses.push({
                     level: 'normal',
                     title: `Nhiệt độ: ${temp.toFixed(1)} °C`,
-                    desc: 'Bình thường'
+                    desc: 'Bình thường (20.0 - 28.0 °C)'
                 });
             }
 
-            // 3. TDS: Bình thường 100 - 400 ppm
-            if (tds < 100) {
+            if (tds < 100 || tds > 400) {
                 statuses.push({
-                    level: 'warning',
+                    level: tds > 400 ? 'danger' : 'warning',
                     title: `TDS: ${tds.toFixed(1)} ppm`,
-                    desc: 'Cảnh báo — thấp, thiếu khoáng chất!'
-                });
-            } else if (tds > 400) {
-                statuses.push({
-                    level: 'danger',
-                    title: `TDS: ${tds.toFixed(1)} ppm`,
-                    desc: 'Cảnh báo — cao, nhiều chất rắn hòa tan!'
+                    desc: tds > 400 ? 'Cảnh báo — TDS cao!' : 'Cảnh báo — TDS thấp!'
                 });
             } else {
                 statuses.push({
                     level: 'normal',
                     title: `TDS: ${tds.toFixed(1)} ppm`,
-                    desc: 'Bình thường'
+                    desc: 'Bình thường (100 - 400 ppm)'
                 });
             }
 
-            // 4. Turbidity: Bình thường < 25 NTU | 25 - 50 hơi đục | > 50 đục cao
-            if (turb > 50) {
+            if (turb > 50 || turb >= 25) {
                 statuses.push({
-                    level: 'danger',
+                    level: turb > 50 ? 'danger' : 'warning',
                     title: `Độ đục: ${turb.toFixed(1)} NTU`,
-                    desc: 'Cảnh báo — nước đục cao, kiểm tra lọc!'
-                });
-            } else if (turb >= 25) {
-                statuses.push({
-                    level: 'warning',
-                    title: `Độ đục: ${turb.toFixed(1)} NTU`,
-                    desc: 'Cảnh báo — nước hơi đục!'
+                    desc: turb > 50 ? 'Cảnh báo — nước đục cao!' : 'Cảnh báo — nước hơi đục!'
                 });
             } else {
                 statuses.push({
                     level: 'normal',
                     title: `Độ đục: ${turb.toFixed(1)} NTU`,
-                    desc: 'Bình thường (nước trong)'
+                    desc: 'Bình thường (< 25 NTU)'
                 });
             }
 
             const levelStyles = {
-                normal: {
-                    box: 'bg-emerald-50 border-emerald-200 text-emerald-900',
-                    dot: 'bg-emerald-500'
-                },
-                warning: {
-                    box: 'bg-amber-50 border-amber-300 text-amber-900',
-                    dot: 'bg-amber-500'
-                },
-                danger: {
-                    box: 'bg-red-50 border-red-300 text-red-900',
-                    dot: 'bg-red-600'
-                }
+                normal: { box: 'bg-emerald-50 border-emerald-200 text-emerald-900', dot: 'bg-emerald-500' },
+                warning: { box: 'bg-amber-50 border-amber-300 text-amber-900', dot: 'bg-amber-500' },
+                danger: { box: 'bg-red-50 border-red-300 text-red-900', dot: 'bg-red-600' }
             };
 
-            const listEl = document.getElementById('water-status-list');
-            listEl.innerHTML = statuses.map(st => {
+            document.getElementById('water-status-list').innerHTML = statuses.map(st => {
                 const style = levelStyles[st.level];
                 return `
                     <div class="p-2.5 px-3 rounded-xl border text-xs sm:text-sm flex items-start gap-2.5 ${style.box}">
@@ -299,11 +218,50 @@
             }).join('');
         }
 
-        // Hàm gọi API lấy dữ liệu và cập nhật giao diện
+        function renderHistoryTable(rows) {
+            const tbody = document.getElementById('history-table-body');
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-6 text-center text-slate-400">Không có bản ghi nào trong khoảng 7 ngày gần nhất cho lựa chọn này.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map(item => {
+                const isWarn = Boolean(item.warning);
+                const badge = isWarn
+                    ? `<span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">${item.message || 'Vượt ngưỡng'}</span>`
+                    : `<span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Ổn định</span>`;
+
+                return `
+                    <tr class="${isWarn ? 'bg-red-50/40' : 'hover:bg-slate-50'}">
+                        <td class="py-2.5 px-3 font-medium text-slate-700">${item.timestamp}</td>
+                        <td class="py-2.5 px-3">${Number(item.temperature).toFixed(1)} °C</td>
+                        <td class="py-2.5 px-3">${Number(item.ph).toFixed(2)}</td>
+                        <td class="py-2.5 px-3">${Number(item.turbidity).toFixed(1)} NTU</td>
+                        <td class="py-2.5 px-3">${Number(item.tds).toFixed(1)} ppm</td>
+                        <td class="py-2.5 px-3">${badge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         async function loadDashboardData() {
-            const dateVal = document.getElementById('filter-date').value;
+            const dateInput = document.getElementById('filter-date');
+            const dateVal = dateInput.value;
+
             let url = '/api/sensors/data/';
-            if (dateVal) url += `?date=${dateVal}`;
+            if (dateVal) {
+                if (dateVal < dateInput.min || dateVal > dateInput.max) {
+                    alert("Chỉ hỗ trợ tra cứu dữ liệu trong vòng 7 ngày đổ lại!");
+                    dateInput.value = '';
+                    url = '/api/sensors/data/';
+                } else {
+                    url += `?date=${dateVal}`;
+                }
+            }
 
             try {
                 const response = await fetch(url);
@@ -312,57 +270,23 @@
                     return;
                 }
                 const data = await response.json();
+                renderHistoryTable(data);
+
                 if (data.length === 0) return;
 
-                // Cập nhật thẻ Card thông số mới nhất (làm tròn gọn để hiển thị)
                 const latest = data[0];
                 document.getElementById('val-temp').innerText = Number(latest.temperature).toFixed(1) + ' °C';
                 document.getElementById('val-ph').innerText = Number(latest.ph).toFixed(2);
                 document.getElementById('val-turbidity').innerText = Number(latest.turbidity).toFixed(1) + ' NTU';
                 document.getElementById('val-tds').innerText = Number(latest.tds).toFixed(1) + ' ppm';
 
-                // Cập nhật bảng thông báo trạng thái đầy đủ cả 4 thông số
                 renderFourParamStatus(latest);
-
-                // Xử lý dữ liệu biểu đồ theo chiều thời gian tăng dần
-                const chartData = [...data].reverse();
-                const labels = chartData.map(i => i.timestamp);
-
-                // Nạp dữ liệu vào các biểu đồ
-                combinedChart.data.labels = labels;
-                combinedChart.data.datasets[0].data = chartData.map(i => i.temperature);
-                combinedChart.data.datasets[1].data = chartData.map(i => i.ph);
-                combinedChart.data.datasets[2].data = chartData.map(i => i.turbidity);
-                combinedChart.data.datasets[3].data = chartData.map(i => i.tds);
-                combinedChart.update();
-
-                tempChart.data.labels = labels;
-                tempChart.data.datasets[0].data = chartData.map(i => i.temperature);
-                tempChart.update();
-
-                phChart.data.labels = labels;
-                phChart.data.datasets[0].data = chartData.map(i => i.ph);
-                phChart.update();
-
-                turbidityChart.data.labels = labels;
-                turbidityChart.data.datasets[0].data = chartData.map(i => i.turbidity);
-                turbidityChart.update();
-
-                tdsChart.data.labels = labels;
-                tdsChart.data.datasets[0].data = chartData.map(i => i.tds);
-                tdsChart.update();
-
             } catch (err) {
                 console.error("Lỗi khi tải dữ liệu:", err);
             }
         }
 
-        // Tự động làm mới mỗi 10 giây nếu không chọn ngày cụ thể
-        setInterval(() => {
-            const dateVal = document.getElementById('filter-date').value;
-            if (!dateVal) loadDashboardData();
-        }, 10000);
-
+        initSevenDayRange();
         loadDashboardData();
     </script>
 </body>
