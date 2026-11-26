@@ -8,29 +8,37 @@
 #include <LiquidCrystal_I2C.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <time.h>
 
-// Địa chỉ URL server trên Render
 const char* serverUrl = "https://koikoi-pond.onrender.com/api/sensors/upload/";
 
-// Cấu hình chân GPIO theo yêu cầu
-#define ONE_WIRE_BUS 4    // DS18B20 data
-#define PH_PIN 34         // Cảm biến pH (ADC1)
-#define TDS_PIN 35        // Cảm biến TDS (ADC1)
-#define TURBIDITY_PIN 32  // Cảm biến độ đục SEN0189 (ADC1)
-#define LCD_SDA 21        // I2C SDA
-#define LCD_SCL 22        // I2C SCL
+#define ONE_WIRE_BUS 4
+#define PH_PIN 34
+#define TDS_PIN 35
+#define TURBIDITY_PIN 32
+#define LCD_SDA 21
+#define LCD_SCL 22
+#define BOOT_PIN 0
+
+// Múi giờ Việt Nam (UTC+7)
+const long GMT_OFFSET_SEC = 7 * 3600;
+const int DAYLIGHT_OFFSET_SEC = 0;
+
+// Chống gửi cảnh báo lặp liên tục mỗi vài giây (60 giây)
+const unsigned long ALERT_COOLDOWN_MS = 60000;
+unsigned long lastAlertSendMs = 0;
+
+// Ghi nhớ mốc giờ định kỳ (6, 12, 21) đã gửi trong ngày
+int lastScheduledDay = -1;
+int lastScheduledHour = -1;
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 Preferences prefs;
 
-// Biến lưu Device ID (mặc định nếu chưa cấu hình)
 char deviceId[32] = "KOI_POND_01";
 bool shouldSaveConfig = false;
-
-unsigned long lastTime = 0;
-unsigned long timerDelay = 10000;
 
 void saveConfigCallback() {
   shouldSaveConfig = true;
@@ -60,53 +68,123 @@ void saveDeviceId(const char* newId) {
   cleanId.toCharArray(deviceId, sizeof(deviceId));
 }
 
-// Đọc trung bình nhiều mẫu ADC để giảm nhiễu
-float readAverageVoltage(int pin, int samples = 15) {
+void checkBootButtonToResetWifi() {
+  if (digitalRead(BOOT_PIN) == LOW) {
+    unsigned long pressStart = millis();
+    while (digitalRead(BOOT_PIN) == LOW) {
+      if (millis() - pressStart >= 1000) {
+        Serial.println("Phat hien nhan nut BOOT -> Xoa Wi-Fi cu de doi mang moi...");
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Reset WiFi...");
+        lcd.setCursor(0, 1);
+        lcd.print("Open Setup AP");
+
+        WiFiManager wmTemp;
+        wmTemp.resetSettings();
+        WiFi.disconnect(true, true);
+        delay(1000);
+        ESP.restart();
+      }
+      delay(20);
+    }
+  }
+}
+
+float readAverageVoltage(int pin, int samples = 50) {
   long sum = 0;
   for (int i = 0; i < samples; i++) {
     sum += analogRead(pin);
-    delayMicroseconds(300);
+    delayMicroseconds(400);
   }
   float avgRaw = (float)sum / samples;
-  return avgRaw * (3.3 / 4095.0);
+  return avgRaw * (3.3f / 4095.0f);
 }
 
-// Quy đổi điện áp TDS (V) + nhiệt độ (°C) -> TDS (ppm) có bù nhiệt
 float voltageToTdsPpm(float tdsVoltage, float tempC) {
-  float tempCoeff = 1.0 + 0.02 * (tempC - 25.0);
-  if (tempCoeff < 0.5) tempCoeff = 0.5;
+  if (tdsVoltage < 0.04f) {
+    return 0.0f;
+  }
+
+  float safeTemp = (tempC <= 0.0f) ? 25.0f : tempC;
+  float tempCoeff = 1.0f + 0.02f * (safeTemp - 25.0f);
+  if (tempCoeff < 0.5f) tempCoeff = 0.5f;
+
   float compVoltage = tdsVoltage / tempCoeff;
+  float tdsPpm = (133.42f * pow(compVoltage, 3) -
+                   255.86f * pow(compVoltage, 2) +
+                   857.39f * compVoltage) * 0.5f;
 
-  float tdsPpm = (133.42 * pow(compVoltage, 3) -
-                  255.86 * pow(compVoltage, 2) +
-                  857.39 * compVoltage) * 0.5;
-
-  if (tdsPpm < 0.0) tdsPpm = 0.0;
+  if (tdsPpm < 0.0f) tdsPpm = 0.0f;
+  if (tdsPpm > 1500.0f) tdsPpm = 0.0f;
   return tdsPpm;
 }
 
-// Quy đổi điện áp Turbidity (V) -> Độ đục (NTU)
-// Nếu SEN0189 qua cầu phân áp về 3.3V thì nhân 5.0 / 3.3 để khôi phục dải 0-5V
 float voltageToTurbidityNtu(float turbVoltage) {
-  float v5 = turbVoltage * (5.0 / 3.3);
-  float ntu = 0.0;
-
-  if (v5 >= 4.2) {
-    ntu = 0.0;
-  } else if (v5 <= 2.5) {
-    ntu = 3000.0;
-  } else {
-    ntu = -1120.4 * sq(v5) + 5742.3 * v5 - 4352.9;
+  if (turbVoltage < 0.20f) {
+    return 0.0f;
   }
 
-  if (ntu < 0.0) ntu = 0.0;
+  float v5 = turbVoltage * (5.0f / 3.3f);
+  float ntu = 0.0f;
+
+  if (v5 >= 4.2f || v5 <= 2.5f) {
+    ntu = 0.0f;
+  } else {
+    ntu = -1120.4f * sq(v5) + 5742.3f * v5 - 4352.9f;
+  }
+
+  if (ntu < 0.0f) ntu = 0.0f;
+  if (ntu > 3000.0f) ntu = 3000.0f;
   return ntu;
+}
+
+// Kiểm tra vượt ngưỡng trên cả 4 thông số
+bool isAnyOutOfRange(float tempC, float ph, float tds, float turb) {
+  bool tempBad = (tempC < 20.0f || tempC > 28.0f);
+  bool phBad   = (ph < 6.8f || ph > 8.0f);
+  bool tdsBad  = (tds < 100.0f || tds > 400.0f);
+  bool turbBad = (turb >= 25.0f);
+  return (tempBad || phBad || tdsBad || turbBad);
+}
+
+bool sendSensorPayload(float tempC, float ph, float tds, float turb) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.printf("[%s] Mat ket noi Wi-Fi, dang thu ket noi lai...\n", deviceId);
+    WiFi.reconnect();
+    return false;
+  }
+
+  HTTPClient http;
+  http.begin(serverUrl);
+  http.addHeader("Content-Type", "application/json");
+
+  StaticJsonDocument<256> doc;
+  doc["device_id"] = deviceId;
+  doc["temperature"] = tempC;
+  doc["ph"] = ph;
+  doc["tds"] = tds;
+  doc["turbidity"] = turb;
+
+  String requestBody;
+  serializeJson(doc, requestBody);
+
+  int httpResponseCode = http.POST(requestBody);
+  bool ok = (httpResponseCode > 0 && httpResponseCode < 400);
+  if (ok) {
+    Serial.printf("[%s] Gui du lieu thanh cong! (HTTP %d)\n", deviceId, httpResponseCode);
+  } else {
+    Serial.printf("[%s] Loi gui du lieu: %d\n", deviceId, httpResponseCode);
+  }
+  http.end();
+  return ok;
 }
 
 void setup() {
   Serial.begin(115200);
   delay(200);
 
+  pinMode(BOOT_PIN, INPUT_PULLUP);
   loadDeviceId();
   Serial.printf("Device ID hien tai: %s\n", deviceId);
 
@@ -140,6 +218,9 @@ void setup() {
     Serial.printf("Da luu Device ID moi: %s\n", deviceId);
   }
 
+  // Đồng bộ thời gian thực qua NTP (UTC+7)
+  configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, "pool.ntp.org", "time.nist.gov");
+
   Serial.println("Da ket noi Wi-Fi thanh cong!");
   Serial.printf("Gui du lieu cho thiet bi: %s\n", deviceId);
 
@@ -157,32 +238,29 @@ void setup() {
 }
 
 void loop() {
-  // 1. Nhiệt độ nước (°C)
+  checkBootButtonToResetWifi();
+
   sensors.requestTemperatures();
   float waterTemp = sensors.getTempCByIndex(0);
   if (waterTemp == DEVICE_DISCONNECTED_C) {
-    waterTemp = 0.0;
+    waterTemp = 0.0f;
   }
 
-  // 2. Đọc điện áp & quy đổi sang giá trị thực trong nước
   float phVoltage = readAverageVoltage(PH_PIN);
   float tdsVoltage = readAverageVoltage(TDS_PIN);
   float turbidityVoltage = readAverageVoltage(TURBIDITY_PIN);
 
-  float phValue = 7.0 + ((phVoltage - 2.5) * 3.5);
-  if (phValue < 0.0) phValue = 0.0;
-  if (phValue > 14.0) phValue = 14.0;
+  float phValue = 7.0f + ((phVoltage - 2.5f) * 3.5f);
+  if (phValue < 0.0f) phValue = 0.0f;
+  if (phValue > 14.0f) phValue = 14.0f;
 
   float tdsPpm = voltageToTdsPpm(tdsVoltage, waterTemp);
   float turbidityNtu = voltageToTurbidityNtu(turbidityVoltage);
 
-  // 3. In đủ 4 giá trị thực ra Serial Monitor
   Serial.printf("[%s] Temp: %.2f C | pH: %.2f | TDS: %.1f ppm | Turb: %.1f NTU\n",
                 deviceId, waterTemp, phValue, tdsPpm, turbidityNtu);
 
-  // 4. Hiển thị gọn đủ 4 giá trị thực lên LCD 16x2
-  // Dòng 0: T:25.0C pH:7.1
-  // Dòng 1: S:210ppm U:12NTU
+  // Hiển thị liên tục trên LCD 16x2
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("T:");
@@ -197,35 +275,30 @@ void loop() {
   lcd.print((int)round(turbidityNtu));
   lcd.print("NTU");
 
-  // 5. Gửi 4 giá trị thực lên server Render qua HTTP POST
-  if ((millis() - lastTime) > timerDelay) {
-    if (WiFi.status() == WL_CONNECTED) {
-      HTTPClient http;
-      http.begin(serverUrl);
-      http.addHeader("Content-Type", "application/json");
+  bool outOfRange = isAnyOutOfRange(waterTemp, phValue, tdsPpm, turbidityNtu);
 
-      StaticJsonDocument<256> doc;
-      doc["device_id"] = deviceId;
-      doc["temperature"] = waterTemp;
-      doc["ph"] = phValue;
-      doc["tds"] = tdsPpm;
-      doc["turbidity"] = turbidityNtu;
-
-      String requestBody;
-      serializeJson(doc, requestBody);
-
-      int httpResponseCode = http.POST(requestBody);
-      if (httpResponseCode > 0) {
-        Serial.printf("[%s] Gui du lieu thanh cong! (HTTP %d)\n", deviceId, httpResponseCode);
-      } else {
-        Serial.printf("[%s] Loi gui du lieu: %d\n", deviceId, httpResponseCode);
+  if (outOfRange) {
+    // Vượt ngưỡng bất kỳ 1 trong 4 thông số -> gửi ngay (có chống spam mỗi 60s)
+    if (millis() - lastAlertSendMs >= ALERT_COOLDOWN_MS) {
+      if (sendSensorPayload(waterTemp, phValue, tdsPpm, turbidityNtu)) {
+        lastAlertSendMs = millis();
       }
-      http.end();
-    } else {
-      Serial.printf("[%s] Mat ket noi Wi-Fi, dang thu ket noi lai...\n", deviceId);
-      WiFi.reconnect();
     }
-    lastTime = millis();
+  } else {
+    // Nước ổn định -> chỉ gửi vào 3 mốc: 6h sáng, 12h trưa, 21h tối
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo, 200)) {
+      int hour = timeinfo.tm_hour;
+      int yday = timeinfo.tm_yday;
+      bool isTargetHour = (hour == 6 || hour == 12 || hour == 21);
+
+      if (isTargetHour && !(lastScheduledDay == yday && lastScheduledHour == hour)) {
+        if (sendSensorPayload(waterTemp, phValue, tdsPpm, turbidityNtu)) {
+          lastScheduledDay = yday;
+          lastScheduledHour = hour;
+        }
+      }
+    }
   }
 
   delay(2000);
